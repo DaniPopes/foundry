@@ -1,12 +1,16 @@
 # Documentation (`doc`)
 
-Solidity documentation generator. It parses the source code and generates an mdbook
-based on the parse tree and [NatSpec comments](https://docs.soliditylang.org/en/v0.8.17/natspec-format.html).
+Solidity documentation generator. Parses Solidity source code to generate a book with [mdBook]
+based on the [parse tree][pt] and [NatSpec comments][natspec].
+
+[mdbook]: https://rust-lang.github.io/mdBook
+[pt]: https://en.wikipedia.org/wiki/Parse_tree
+[natspec]: https://docs.soliditylang.org/en/v0.8.17/natspec-format.html
 
 ## Architecture
 
 The entrypoint for the documentation module is the `DocBuilder`.
-The `DocBuilder` generates the mdbook in 3 phases:
+The `DocBuilder` generates the book in 3 phases:
 
 1. Parse
 
@@ -14,13 +18,11 @@ In this phase, builder invokes 2 parsers: [solang parser](https://github.com/hyp
 
 Then, builder takes the output of the internal `Parser` and creates documents with additional information: the path of the original item, display identity, the target path where this document will be written.
 
-
 2. Preprocess
 
-The builder accepts an array of preprocessors which can be applied to documents produced in the `Parse` phase. The preprocessors can rearrange and/or change the array as well as modify the separate documents.
+The builder accepts an array of preprocessors which can be applied to documents produced in the parse phase. The preprocessors can rearrange and/or change the array as well as modify the separate documents.
 
 At the end of this phase, the builder maintains a possibly modified collection of documents.
-
 
 3. Write
 
