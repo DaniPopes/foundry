@@ -20,6 +20,7 @@ members = [
     "ui",
     "utils",
 ]
+resolver = "2"
 
 [profile.dev]
 # Disabling debug info speeds up builds a bunch,
@@ -60,7 +61,7 @@ codegen-units = 1
 
 # # Patch ethers-rs with a local checkout then run `cargo update -p ethers`
 # [patch."https://github.com/gakonst/ethers-rs"]
-# ethers = { path = "../ethers-rs" }
+# ethers = { path = "../ethers-rs/ethers" }
 # ethers-addressbook = { path = "../ethers-rs/ethers-addressbook" }
 # ethers-core = { path = "../ethers-rs/ethers-core" }
 # ethers-contract = { path = "../ethers-rs/ethers-contract" }
