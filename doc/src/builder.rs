@@ -1,8 +1,8 @@
 use crate::{
-    document::DocumentContent, helpers::merge_toml_table, AsDoc, BufWriter, Document, ParseItem,
-    ParseSource, Parser, Preprocessor,
+    document::DocumentContent,
+    helpers::{merge_toml_table, source_files_iter},
+    AsDoc, Buffer, Document, ParseItem, ParseSource, Parser, Preprocessor,
 };
-use ethers_solc::utils::source_files_iter;
 use forge_fmt::{FormatterConfig, Visitable};
 use foundry_config::DocConfig;
 use foundry_utils::glob::expand_globs;
@@ -115,45 +115,46 @@ impl DocBuilder {
                     })?;
 
                 // Visit the parse tree
-                let mut doc = Parser::new(comments, source).with_fmt(self.fmt.clone());
+                let mut parser = Parser::new(comments, source).with_config(self.fmt.clone());
                 source_unit
-                    .visit(&mut doc)
+                    .visit(&mut parser)
                     .map_err(|err| eyre::eyre!("Failed to parse source: {err}"))?;
 
                 // Split the parsed items on top-level constants and rest.
-                let (items, consts): (Vec<ParseItem>, Vec<ParseItem>) = doc
-                    .items()
-                    .into_iter()
-                    .partition(|item| !matches!(item.source, ParseSource::Variable(_)));
+                let (items, consts) =
+                    parser.into_items().into_iter().partition::<Vec<_>, _>(|item| {
+                        !matches!(item.source, ParseSource::Variable(_))
+                    });
 
                 // Attempt to group overloaded top-level functions
                 let mut remaining = Vec::with_capacity(items.len());
                 let mut funcs: HashMap<String, Vec<ParseItem>> = HashMap::default();
                 for item in items {
                     if matches!(item.source, ParseSource::Function(_)) {
-                        funcs.entry(item.source.ident()).or_default().push(item);
+                        funcs.entry(item.source.ident().to_string()).or_default().push(item);
                     } else {
                         // Put the item back
                         remaining.push(item);
                     }
                 }
-                let (items, overloaded): (
-                    HashMap<String, Vec<ParseItem>>,
-                    HashMap<String, Vec<ParseItem>>,
-                ) = funcs.into_iter().partition(|(_, v)| v.len() == 1);
-                remaining.extend(items.into_iter().flat_map(|(_, v)| v));
+                let mut iter = funcs.into_iter();
+
+                let overloaded: HashMap<_, _> =
+                    iter.by_ref().filter(|(_, v)| v.len() > 1).collect();
 
                 // Each regular item will be written into its own file.
+                let relative_path = path.strip_prefix(&self.root)?;
                 let mut files = remaining
                     .into_iter()
+                    .chain(iter.flat_map(|(_, v)| v))
                     .map(|item| {
-                        let relative_path = path.strip_prefix(&self.root)?.join(item.filename());
+                        let relative_path = relative_path.join(item.filename());
                         let target_path = self.config.out.join(Self::SRC).join(relative_path);
-                        let ident = item.source.ident();
-                        Ok(Document::new(path.clone(), target_path)
-                            .with_content(DocumentContent::Single(item), ident))
+                        let ident = item.source.ident().to_string();
+                        Document::new(path.clone(), target_path)
+                            .with_content(DocumentContent::Single(item), ident)
                     })
-                    .collect::<eyre::Result<Vec<_>>>()?;
+                    .collect::<Vec<_>>();
 
                 // If top-level constants exist, they will be written to the same file.
                 if !consts.is_empty() {
@@ -162,17 +163,18 @@ impl DocBuilder {
                     let filename = {
                         let mut name = "constants".to_owned();
                         if let Some(stem) = filestem {
-                            name.push_str(&format!(".{stem}"));
+                            name.push('.');
+                            name.push_str(stem);
                         }
                         name.push_str(".md");
                         name
                     };
-                    let relative_path = path.strip_prefix(&self.root)?.join(filename);
+                    let relative_path = relative_path.join(filename);
                     let target_path = self.config.out.join(Self::SRC).join(relative_path);
 
                     let identity = match filestem {
                         Some(stem) if stem.to_lowercase().contains("constants") => stem.to_owned(),
-                        Some(stem) => format!("{stem} constants"),
+                        Some(stem) => stem.to_owned() + " constants",
                         None => "constants".to_owned(),
                     };
 
@@ -186,7 +188,7 @@ impl DocBuilder {
                 if !overloaded.is_empty() {
                     for (ident, funcs) in overloaded {
                         let filename = funcs.first().expect("no overloaded functions").filename();
-                        let relative_path = path.strip_prefix(&self.root)?.join(filename);
+                        let relative_path = relative_path.join(filename);
                         let target_path = self.config.out.join(Self::SRC).join(relative_path);
                         files.push(
                             Document::new(path.clone(), target_path)
@@ -200,20 +202,17 @@ impl DocBuilder {
             .collect::<eyre::Result<Vec<_>>>()?;
 
         // Flatten results and apply preprocessors to files
-        let documents = self
-            .preprocessors
-            .iter()
-            .try_fold(documents.into_iter().flatten().collect_vec(), |docs, p| {
-                p.preprocess(docs)
-            })?;
+        let documents = documents.into_iter().flatten().collect::<Vec<_>>();
+        let mut documents =
+            self.preprocessors.iter().try_fold(documents, |docs, p| p.preprocess(docs))?;
 
         // Sort the results
-        let documents = documents.into_iter().sorted_by(|doc1, doc2| {
-            doc1.item_path.display().to_string().cmp(&doc2.item_path.display().to_string())
-        });
+        // note: this doesn't work because of lifetimes:
+        // documents.sort_unstable_by_key(|doc| &doc.item_path);
+        documents.sort_unstable_by(|a, b| a.item_path.cmp(&b.item_path));
 
         // Write mdbook related files
-        self.write_mdbook(documents.collect_vec())?;
+        self.write_mdbook(documents)?;
 
         // Build the book if requested
         if self.should_build {
@@ -246,7 +245,7 @@ impl DocBuilder {
         fs::write(&readme_path, readme_content)?;
 
         // Write summary and section readmes
-        let mut summary = BufWriter::default();
+        let mut summary = Buffer::default();
         summary.write_title("Summary")?;
         summary.write_link_list_item("Home", Self::README, 0)?;
         self.write_summary_section(&mut summary, &documents.iter().collect::<Vec<_>>(), None, 0)?;
@@ -317,7 +316,7 @@ impl DocBuilder {
 
     fn write_summary_section(
         &self,
-        summary: &mut BufWriter,
+        summary: &mut Buffer,
         files: &[&Document],
         base_path: Option<&Path>,
         depth: usize,
@@ -347,22 +346,25 @@ impl DocBuilder {
             let key = path.iter().take(depth + 1).collect::<PathBuf>();
             grouped.entry(key).or_insert_with(Vec::new).push(*file);
         }
+
         // Sort entries by path depth
-        let grouped = grouped.into_iter().sorted_by(|(lhs, _), (rhs, _)| {
-            let lhs_at_end = lhs.extension().map(|ext| ext.eq(Self::SOL_EXT)).unwrap_or_default();
-            let rhs_at_end = rhs.extension().map(|ext| ext.eq(Self::SOL_EXT)).unwrap_or_default();
-            if lhs_at_end == rhs_at_end {
-                lhs.cmp(rhs)
-            } else if lhs_at_end {
+        let grouped = grouped.into_iter().sorted_by(|(a, _), (b, _)| {
+            let is_sol = |p: &Path| p.extension().map_or(false, |ext| ext == Self::SOL_EXT);
+            let sol_a = is_sol(a);
+            let sol_b = is_sol(b);
+            if sol_a == sol_b {
+                a.cmp(b)
+            } else if sol_a {
                 Ordering::Greater
             } else {
                 Ordering::Less
             }
         });
 
-        let mut readme = BufWriter::new("\n\n# Contents\n");
+        let mut readme = Buffer::new();
+        readme.write_raw("\n\n# Contents\n")?;
         for (path, files) in grouped {
-            if path.extension().map(|ext| ext.eq(Self::SOL_EXT)).unwrap_or_default() {
+            if path.extension().map_or(false, |ext| ext.eq(Self::SOL_EXT)) {
                 for file in files {
                     let ident = &file.identity;
 

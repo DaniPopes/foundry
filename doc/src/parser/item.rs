@@ -5,7 +5,7 @@ use forge_fmt::{
 };
 use solang_parser::pt::{
     ContractDefinition, ContractTy, EnumDefinition, ErrorDefinition, EventDefinition,
-    FunctionDefinition, StructDefinition, TypeDefinition, VariableDefinition,
+    FunctionDefinition, FunctionTy, StructDefinition, TypeDefinition, VariableDefinition,
 };
 
 /// The parsed item.
@@ -91,21 +91,21 @@ impl ParseItem {
             config,
         );
 
-        match self.source.clone() {
-            ParseSource::Contract(mut contract) => {
+        match self.source {
+            ParseSource::Contract(ref mut contract) => {
                 contract.parts = vec![];
-                fmt.visit_contract(&mut contract)?
+                fmt.visit_contract(contract)?
             }
-            ParseSource::Function(mut func) => {
+            ParseSource::Function(ref mut func) => {
                 func.body = None;
-                fmt.visit_function(&mut func)?
+                fmt.visit_function(func)?
             }
-            ParseSource::Variable(mut var) => fmt.visit_var_definition(&mut var)?,
-            ParseSource::Event(mut event) => fmt.visit_event(&mut event)?,
-            ParseSource::Error(mut error) => fmt.visit_error(&mut error)?,
-            ParseSource::Struct(mut structure) => fmt.visit_struct(&mut structure)?,
-            ParseSource::Enum(mut enumeration) => fmt.visit_enum(&mut enumeration)?,
-            ParseSource::Type(mut ty) => fmt.visit_type_definition(&mut ty)?,
+            ParseSource::Variable(ref mut var) => fmt.visit_var_definition(var)?,
+            ParseSource::Event(ref mut event) => fmt.visit_event(event)?,
+            ParseSource::Error(ref mut error) => fmt.visit_error(error)?,
+            ParseSource::Struct(ref mut structure) => fmt.visit_struct(structure)?,
+            ParseSource::Enum(ref mut enumeration) => fmt.visit_enum(enumeration)?,
+            ParseSource::Type(ref mut ty) => fmt.visit_type_definition(ty)?,
         };
 
         self.code = code;
@@ -113,9 +113,9 @@ impl ParseItem {
         Ok(self)
     }
 
-    /// Format the item's filename.
-    pub fn filename(&self) -> String {
-        let prefix = match self.source {
+    /// The item's file name prefix.
+    pub fn filename_prefix(&self) -> &'static str {
+        match self.source {
             ParseSource::Contract(ref c) => match c.ty {
                 ContractTy::Contract(_) => "contract",
                 ContractTy::Abstract(_) => "abstract",
@@ -129,7 +129,12 @@ impl ParseItem {
             ParseSource::Struct(_) => "struct",
             ParseSource::Enum(_) => "enum",
             ParseSource::Type(_) => "type",
-        };
+        }
+    }
+
+    /// Format the item's filename.
+    pub fn filename(&self) -> String {
+        let prefix = self.filename_prefix();
         let ident = self.source.ident();
         format!("{prefix}.{ident}.md")
     }
@@ -169,18 +174,28 @@ pub enum ParseSource {
 
 impl ParseSource {
     /// Get the identity of the source
-    pub fn ident(&self) -> String {
+    pub fn ident(&self) -> &str {
         match self {
-            ParseSource::Contract(contract) => contract.name.safe_unwrap().name.to_owned(),
-            ParseSource::Variable(var) => var.name.safe_unwrap().name.to_owned(),
-            ParseSource::Event(event) => event.name.safe_unwrap().name.to_owned(),
-            ParseSource::Error(error) => error.name.safe_unwrap().name.to_owned(),
-            ParseSource::Struct(structure) => structure.name.safe_unwrap().name.to_owned(),
-            ParseSource::Enum(enumerable) => enumerable.name.safe_unwrap().name.to_owned(),
+            ParseSource::Contract(contract) => &contract.name.safe_unwrap().name,
+            ParseSource::Variable(var) => &var.name.safe_unwrap().name,
+            ParseSource::Event(event) => &event.name.safe_unwrap().name,
+            ParseSource::Error(error) => &error.name.safe_unwrap().name,
+            ParseSource::Struct(structure) => &structure.name.safe_unwrap().name,
+            ParseSource::Enum(enumerable) => &enumerable.name.safe_unwrap().name,
             ParseSource::Function(func) => {
-                func.name.as_ref().map_or(func.ty.to_string(), |n| n.name.to_owned())
+                func.name.as_ref().map_or(fn_ty_str(&func.ty), |n| &n.name)
             }
-            ParseSource::Type(ty) => ty.name.name.to_owned(),
+            ParseSource::Type(ty) => &ty.name.name,
         }
+    }
+}
+
+fn fn_ty_str(ty: &FunctionTy) -> &'static str {
+    match ty {
+        FunctionTy::Constructor => "constructor",
+        FunctionTy::Function => "function",
+        FunctionTy::Fallback => "fallback",
+        FunctionTy::Receive => "receive",
+        FunctionTy::Modifier => "modifier",
     }
 }

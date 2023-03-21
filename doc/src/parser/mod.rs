@@ -1,7 +1,6 @@
 //! The parser module.
 
 use forge_fmt::{FormatterConfig, Visitable, Visitor};
-use itertools::Itertools;
 use solang_parser::{
     doccomment::{parse_doccomments, DocComment},
     pt::{
@@ -56,13 +55,13 @@ impl Parser {
     }
 
     /// Set formatter config on the [Parser]
-    pub fn with_fmt(mut self, fmt: FormatterConfig) -> Self {
+    pub fn with_config(mut self, fmt: FormatterConfig) -> Self {
         self.fmt = fmt;
         self
     }
 
     /// Return the parsed items. Consumes the parser.
-    pub fn items(self) -> Vec<ParseItem> {
+    pub fn into_items(self) -> Vec<ParseItem> {
         self.items
     }
 
@@ -123,7 +122,7 @@ impl Parser {
         let res = res
             .into_iter()
             .filter(|c| c.tag.trim() != "solidity" && !c.tag.trim().is_empty())
-            .collect_vec();
+            .collect::<Vec<_>>();
         Ok(res.into())
     }
 }
@@ -229,9 +228,9 @@ mod tests {
     #[inline]
     fn parse_source(src: &str) -> Vec<ParseItem> {
         let (mut source, comments) = parse(src, 0).expect("failed to parse source");
-        let mut doc = Parser::new(comments, src.to_owned());
-        source.visit(&mut doc).expect("failed to visit source");
-        doc.items()
+        let mut parser = Parser::new(comments, src.to_owned());
+        source.visit(&mut parser).expect("failed to visit source");
+        parser.into_items()
     }
 
     macro_rules! test_single_unit {

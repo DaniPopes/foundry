@@ -7,5 +7,5 @@ mod markdown;
 
 pub use as_doc::{AsDoc, AsDocResult};
 pub use as_string::AsString;
-pub use buf_writer::BufWriter;
+pub use buf_writer::Buffer;
 pub use markdown::Markdown;

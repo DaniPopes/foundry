@@ -38,7 +38,7 @@ impl CommentTag {
             _ if trimmed.starts_with("custom:") => {
                 // `@custom:param` tag will be parsed as `CommentTag::Param` due to a limitation
                 // on specifying parameter docs for unnamed function arguments.
-                let custom_tag = trimmed.trim_start_matches("custom:").trim();
+                let custom_tag = trimmed[7..].trim_start();
                 match custom_tag {
                     "param" => CommentTag::Param,
                     _ => CommentTag::Custom(custom_tag.to_owned()),
@@ -87,7 +87,7 @@ impl Comment {
     pub fn match_first_word(&self, expected: &str) -> Option<&str> {
         self.split_first_word().and_then(
             |(word, rest)| {
-                if word.eq(expected) {
+                if word == expected {
                     Some(rest)
                 } else {
                     None
@@ -123,25 +123,17 @@ impl Comments {
     ///
     /// Merges two comments collections by inserting [CommentTag] from the second collection
     /// into the first unless they are present.
-    pub fn merge_inheritdoc(
-        &self,
-        ident: &str,
-        inheritdocs: Option<HashMap<String, Comments>>,
-    ) -> Comments {
-        let mut result = Comments(Vec::from_iter(self.iter().cloned()));
-
+    pub fn merge_inheritdoc(&mut self, ident: &str, inheritdocs: Option<HashMap<String, Self>>) {
         if let (Some(inheritdocs), Some(base)) = (inheritdocs, self.find_inheritdoc_base()) {
             let key = format!("{base}.{ident}");
             if let Some(other) = inheritdocs.get(&key) {
                 for comment in other.iter() {
-                    if !result.contains_tag(comment) {
-                        result.push(comment.clone());
+                    if !self.contains_tag(comment) {
+                        self.push(comment.clone());
                     }
                 }
             }
         }
-
-        result
     }
 }
 
@@ -157,20 +149,20 @@ pub struct CommentsRef<'a>(Vec<&'a Comment>);
 
 impl<'a> CommentsRef<'a> {
     /// Filter a collection of comments and return only those that match a provided tag
-    pub fn include_tag(&self, tag: CommentTag) -> CommentsRef<'a> {
+    pub fn include_tag(&self, tag: CommentTag) -> Self {
         self.include_tags(&[tag])
     }
 
     /// Filter a collection of comments and return only those that match provided tags
-    pub fn include_tags(&self, tags: &[CommentTag]) -> CommentsRef<'a> {
+    pub fn include_tags(&self, tags: &[CommentTag]) -> Self {
         // Cloning only references here
-        CommentsRef(self.iter().cloned().filter(|c| tags.contains(&c.tag)).collect())
+        Self(self.iter().cloned().filter(|c| tags.contains(&c.tag)).collect())
     }
 
     /// Filter a collection of comments and return  only those that do not match provided tags
-    pub fn exclude_tags(&self, tags: &[CommentTag]) -> CommentsRef<'a> {
+    pub fn exclude_tags(&self, tags: &[CommentTag]) -> Self {
         // Cloning only references here
-        CommentsRef(self.iter().cloned().filter(|c| !tags.contains(&c.tag)).collect())
+        Self(self.iter().cloned().filter(|c| !tags.contains(&c.tag)).collect())
     }
 
     /// Check if the collection contains a target comment.

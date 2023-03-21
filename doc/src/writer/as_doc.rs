@@ -1,15 +1,14 @@
-use std::path::Path;
-
 use crate::{
     document::{read_context, DocumentContent},
     parser::ParseSource,
-    writer::BufWriter,
-    AsString, CommentTag, Comments, CommentsRef, Document, Markdown, PreprocessorOutput,
+    writer::Buffer,
+    CommentTag, Comments, CommentsRef, Document, Markdown, PreprocessorOutput,
     CONTRACT_INHERITANCE_ID, GIT_SOURCE_ID, INHERITDOC_ID,
 };
 use forge_fmt::solang_ext::SafeUnwrap;
 use itertools::Itertools;
 use solang_parser::pt::Base;
+use std::{fmt::Write, path::Path};
 
 /// The result of [Asdoc::as_doc] method.
 pub type AsDocResult = Result<String, std::fmt::Error>;
@@ -36,7 +35,7 @@ impl AsDoc for Comments {
 impl<'a> AsDoc for CommentsRef<'a> {
     // TODO: support other tags
     fn as_doc(&self) -> AsDocResult {
-        let mut writer = BufWriter::default();
+        let mut writer = Buffer::default();
 
         // Write author tag(s)
         let authors = self.include_tag(CommentTag::Author);
@@ -72,7 +71,7 @@ impl AsDoc for Base {
 
 impl AsDoc for Document {
     fn as_doc(&self) -> AsDocResult {
-        let mut writer = BufWriter::default();
+        let mut writer = Buffer::default();
 
         match &self.content {
             DocumentContent::OverloadedFunctions(items) => {
@@ -161,12 +160,14 @@ impl AsDoc for Document {
                         if let Some(state_vars) = item.variables() {
                             writer.write_subtitle("State Variables")?;
                             state_vars.into_iter().try_for_each(|(item, comments, code)| {
-                                let comments = comments.merge_inheritdoc(
-                                    &item.name.safe_unwrap().name,
+                                let name = &item.name.safe_unwrap().name;
+                                let mut comments = comments.clone();
+                                comments.merge_inheritdoc(
+                                    name,
                                     read_context!(self, INHERITDOC_ID, Inheritdoc),
                                 );
 
-                                writer.write_heading(&item.name.safe_unwrap().name)?;
+                                writer.write_heading(name)?;
                                 writer.write_section(&comments, code)?;
                                 writer.writeln()
                             })?;
@@ -174,12 +175,13 @@ impl AsDoc for Document {
 
                         if let Some(funcs) = item.functions() {
                             writer.write_subtitle("Functions")?;
-                            funcs.into_iter().try_for_each(|(func, comments, code)| {
+                            for (func, comments, code) in funcs {
                                 let func_name = func
                                     .name
                                     .as_ref()
                                     .map_or(func.ty.to_string(), |n| n.name.to_owned());
-                                let comments = comments.merge_inheritdoc(
+                                let mut comments = comments.clone();
+                                comments.merge_inheritdoc(
                                     &func_name,
                                     read_context!(self, INHERITDOC_ID, Inheritdoc),
                                 );
@@ -221,9 +223,7 @@ impl AsDoc for Document {
                                 )?;
 
                                 writer.writeln()?;
-
-                                Ok::<(), std::fmt::Error>(())
-                            })?;
+                            }
                         }
 
                         if let Some(events) = item.events() {

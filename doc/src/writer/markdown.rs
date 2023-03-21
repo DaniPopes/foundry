@@ -1,4 +1,5 @@
 use crate::{AsDoc, AsDocResult};
+use std::fmt;
 
 /// The markdown format.
 #[derive(Debug)]
@@ -23,22 +24,25 @@ pub enum Markdown<'a> {
 
 impl<'a> AsDoc for Markdown<'a> {
     fn as_doc(&self) -> AsDocResult {
-        let doc = match self {
-            Self::H1(val) => format!("# {val}"),
-            Self::H2(val) => format!("## {val}"),
-            Self::H3(val) => format!("### {val}"),
-            Self::Italic(val) => format!("*{val}*"),
-            Self::Bold(val) => format!("**{val}**"),
-            Self::Link(val, link) => format!("[{val}]({link})"),
-            Self::Code(val) => format!("`{val}`"),
-            Self::CodeBlock(lang, val) => format!("```{lang}\n{val}\n```"),
-        };
-        Ok(doc)
+        Ok(self.to_string())
     }
 }
 
-impl<'a> std::fmt::Display for Markdown<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!("{}", self.as_doc()?))
+impl<'a> fmt::Display for Markdown<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            // add an extra new line after headings
+            Self::H1(val) => writeln!(f, "# {val}"),
+            Self::H2(val) => writeln!(f, "## {val}"),
+            Self::H3(val) => writeln!(f, "### {val}"),
+
+            Self::Italic(val) => write!(f, "*{val}*"),
+            Self::Bold(val) => write!(f, "**{val}**"),
+
+            Self::Link(val, link) => write!(f, "[{val}]({link})"),
+
+            Self::Code(val) => write!(f, "`{val}`"),
+            Self::CodeBlock(lang, val) => write!(f, "```{lang}\n{val}\n```"),
+        }
     }
 }

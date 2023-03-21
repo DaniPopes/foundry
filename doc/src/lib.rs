@@ -7,7 +7,7 @@
 
 //! The module for generating Solidity documentation.
 //!
-//! See [DocBuilder]
+//! See [DocBuilder].
 
 mod builder;
 mod document;

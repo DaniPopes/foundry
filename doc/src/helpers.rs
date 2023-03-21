@@ -1,4 +1,6 @@
+use std::path::{Path, PathBuf};
 use toml::{value::Table, Value};
+use walkdir::WalkDir;
 
 /// Merge original toml table with the override.
 pub(crate) fn merge_toml_table(table: &mut Table, override_table: Table) {
@@ -25,4 +27,22 @@ pub(crate) fn merge_toml_table(table: &mut Table, override_table: Table) {
             }
         };
     }
+}
+
+/// Returns an iterator that yields all solidity/yul files funder under the given root path or the
+/// `root` itself, if it is a sol/yul file
+///
+/// This also follows symlinks.
+///
+/// Taken from `ethers_solc::utils::source_files_iter`
+pub(crate) fn source_files_iter(root: impl AsRef<Path>) -> impl Iterator<Item = PathBuf> {
+    WalkDir::new(root)
+        .follow_links(true)
+        .into_iter()
+        .filter_map(Result::ok)
+        .filter(|e| e.file_type().is_file())
+        .filter(|e| {
+            e.path().extension().map(|ext| (ext == "sol") || (ext == "yul")).unwrap_or_default()
+        })
+        .map(|e| e.path().into())
 }
