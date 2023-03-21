@@ -46,8 +46,7 @@ macro_rules! filter_children_fn {
 /// the variant
 macro_rules! as_inner_source {
     ($vis:vis fn $name:ident(&self, $variant:ident) -> $ret:ty) => {
-        /// Return inner element if it matches $variant.
-        /// If the element doesn't match, returns [None]
+        #[doc = concat!("Return inner element if it matches `ParseSource::", stringify!($variant), "`.")]
         $vis fn $name(&self) -> Option<&$ret> {
             match self.source {
                 ParseSource::$variant(ref inner) => Some(inner),
@@ -91,21 +90,21 @@ impl ParseItem {
             config,
         );
 
-        match self.source {
-            ParseSource::Contract(ref mut contract) => {
+        match &mut self.source {
+            ParseSource::Contract(contract) => {
                 contract.parts = vec![];
                 fmt.visit_contract(contract)?
             }
-            ParseSource::Function(ref mut func) => {
+            ParseSource::Function(func) => {
                 func.body = None;
                 fmt.visit_function(func)?
             }
-            ParseSource::Variable(ref mut var) => fmt.visit_var_definition(var)?,
-            ParseSource::Event(ref mut event) => fmt.visit_event(event)?,
-            ParseSource::Error(ref mut error) => fmt.visit_error(error)?,
-            ParseSource::Struct(ref mut structure) => fmt.visit_struct(structure)?,
-            ParseSource::Enum(ref mut enumeration) => fmt.visit_enum(enumeration)?,
-            ParseSource::Type(ref mut ty) => fmt.visit_type_definition(ty)?,
+            ParseSource::Variable(var) => fmt.visit_var_definition(var)?,
+            ParseSource::Event(event) => fmt.visit_event(event)?,
+            ParseSource::Error(error) => fmt.visit_error(error)?,
+            ParseSource::Struct(structure) => fmt.visit_struct(structure)?,
+            ParseSource::Enum(enumeration) => fmt.visit_enum(enumeration)?,
+            ParseSource::Type(ty) => fmt.visit_type_definition(ty)?,
         };
 
         self.code = code;

@@ -13,8 +13,7 @@ pub const CONTRACT_INHERITANCE_ID: PreprocessorId = PreprocessorId("contract_inh
 /// to link them with the paths of the other contract documents.
 ///
 /// This preprocessor writes to [Document]'s context.
-#[derive(Default, Debug)]
-#[non_exhaustive]
+#[derive(Debug)]
 pub struct ContractInheritance;
 
 impl Preprocessor for ContractInheritance {
@@ -22,7 +21,7 @@ impl Preprocessor for ContractInheritance {
         CONTRACT_INHERITANCE_ID
     }
 
-    fn preprocess(&self, documents: Vec<Document>) -> Result<Vec<Document>, eyre::Error> {
+    fn preprocess(&self, documents: &mut Vec<Document>) -> eyre::Result<()> {
         for document in documents.iter() {
             if let DocumentContent::Single(ref item) = document.content {
                 if let ParseSource::Contract(ref contract) = item.source {
@@ -45,7 +44,7 @@ impl Preprocessor for ContractInheritance {
             }
         }
 
-        Ok(documents)
+        Ok(())
     }
 }
 

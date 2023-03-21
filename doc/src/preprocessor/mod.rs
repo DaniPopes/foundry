@@ -44,5 +44,5 @@ pub trait Preprocessor: Debug {
     fn id(&self) -> PreprocessorId;
 
     /// Preprocess the collection of documents
-    fn preprocess(&self, documents: Vec<Document>) -> eyre::Result<Vec<Document>>;
+    fn preprocess(&self, documents: &mut Vec<Document>) -> eyre::Result<()>;
 }

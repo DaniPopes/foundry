@@ -23,7 +23,7 @@ impl Preprocessor for GitSource {
         GIT_SOURCE_ID
     }
 
-    fn preprocess(&self, documents: Vec<Document>) -> Result<Vec<Document>, eyre::Error> {
+    fn preprocess(&self, documents: &mut Vec<Document>) -> eyre::Result<()> {
         if let Some(ref repo) = self.repository {
             let repo = repo.trim_end_matches('/');
             let commit = self.commit.clone().unwrap_or("master".to_owned());
@@ -36,6 +36,6 @@ impl Preprocessor for GitSource {
             }
         }
 
-        Ok(documents)
+        Ok(())
     }
 }

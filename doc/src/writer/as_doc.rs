@@ -84,15 +84,19 @@ impl AsDoc for Document {
 
                 for item in items.iter() {
                     let func = item.as_function().unwrap();
-                    let mut heading = item.source.ident();
+                    let ident = item.source.ident();
+                    let mut heading = String::with_capacity(ident.len() + func.params.len() * 32);
+                    heading.push_str(ident);
                     if !func.params.is_empty() {
-                        heading.push_str(&format!(
-                            "({})",
-                            func.params
-                                .iter()
-                                .map(|p| p.1.as_ref().map(|p| p.ty.as_string()).unwrap_or_default())
-                                .join(", ")
-                        ));
+                        heading.push('(');
+                        for (i, (_, param)) in func.params.iter().enumerate() {
+                            let ty = &param.safe_unwrap().ty;
+                            write!(heading, "{ty}").unwrap();
+                            if i < func.params.len() {
+                                heading.push_str(", ");
+                            }
+                        }
+                        heading.push(')');
                     }
                     writer.write_heading(&heading)?;
                     writer.write_section(&item.comments, &item.code)?;

@@ -6,6 +6,6 @@ mod buf_writer;
 mod markdown;
 
 pub use as_doc::{AsDoc, AsDocResult};
-pub use as_string::AsString;
+pub use as_string::DisplayPT;
 pub use buf_writer::Buffer;
 pub use markdown::Markdown;

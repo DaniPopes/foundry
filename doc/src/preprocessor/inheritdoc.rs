@@ -15,8 +15,7 @@ pub const INHERITDOC_ID: PreprocessorId = PreprocessorId("inheritdoc");
 /// comments for inheritdoc comment tags.
 ///
 /// This preprocessor writes to [Document]'s context.
-#[derive(Default, Debug)]
-#[non_exhaustive]
+#[derive(Debug)]
 pub struct Inheritdoc;
 
 impl Preprocessor for Inheritdoc {
@@ -24,7 +23,7 @@ impl Preprocessor for Inheritdoc {
         INHERITDOC_ID
     }
 
-    fn preprocess(&self, documents: Vec<Document>) -> Result<Vec<Document>, eyre::Error> {
+    fn preprocess(&self, documents: &mut Vec<Document>) -> eyre::Result<()> {
         for document in documents.iter() {
             if let DocumentContent::Single(ref item) = document.content {
                 let context = self.visit_item(item, &documents);
@@ -34,7 +33,7 @@ impl Preprocessor for Inheritdoc {
             }
         }
 
-        Ok(documents)
+        Ok(())
     }
 }
 

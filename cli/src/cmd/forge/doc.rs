@@ -80,13 +80,11 @@ impl Cmd for DocArgs {
             .with_should_build(self.build)
             .with_config(doc_config.clone())
             .with_fmt(config.fmt)
-            .with_preprocessor(ContractInheritance::default())
-            .with_preprocessor(Inheritdoc::default())
-            .with_preprocessor(GitSource {
-                root,
-                commit,
-                repository: doc_config.repository.clone(),
-            })
+            .with_preprocessors(&[
+                &ContractInheritance,
+                &Inheritdoc,
+                &GitSource { root, commit, repository: doc_config.repository.clone() },
+            ])
             .build()?;
 
         if self.serve {

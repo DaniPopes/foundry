@@ -21,7 +21,7 @@ use toml::value;
 /// The builder parses the source files using [Parser],
 /// then formats and writes the elements as the output.
 #[derive(Debug)]
-pub struct DocBuilder {
+pub struct DocBuilder<'p> {
     /// The project root
     pub root: PathBuf,
     /// Path to Solidity source files.
@@ -31,13 +31,13 @@ pub struct DocBuilder {
     /// Documentation configuration.
     pub config: DocConfig,
     /// The array of preprocessors to apply.
-    pub preprocessors: Vec<Box<dyn Preprocessor>>,
+    pub preprocessors: &'p [&'p dyn Preprocessor],
     /// The formatter config.
     pub fmt: FormatterConfig,
 }
 
 // TODO: consider using `tfio`
-impl DocBuilder {
+impl<'p> DocBuilder<'p> {
     const SRC: &'static str = "src";
     const SOL_EXT: &'static str = "sol";
     const README: &'static str = "README.md";
@@ -74,8 +74,8 @@ impl DocBuilder {
     }
 
     /// Set preprocessors on the builder.
-    pub fn with_preprocessor<P: Preprocessor + 'static>(mut self, preprocessor: P) -> Self {
-        self.preprocessors.push(Box::new(preprocessor) as Box<dyn Preprocessor>);
+    pub fn with_preprocessors(mut self, preprocessors: &'p [&'p dyn Preprocessor]) -> Self {
+        self.preprocessors = preprocessors;
         self
     }
 
@@ -202,9 +202,10 @@ impl DocBuilder {
             .collect::<eyre::Result<Vec<_>>>()?;
 
         // Flatten results and apply preprocessors to files
-        let documents = documents.into_iter().flatten().collect::<Vec<_>>();
-        let mut documents =
-            self.preprocessors.iter().try_fold(documents, |docs, p| p.preprocess(docs))?;
+        let mut documents = documents.into_iter().flatten().collect::<Vec<_>>();
+        for p in self.preprocessors.iter() {
+            p.preprocess(&mut documents)?;
+        }
 
         // Sort the results
         // note: this doesn't work because of lifetimes:
