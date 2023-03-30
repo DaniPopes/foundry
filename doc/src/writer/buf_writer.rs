@@ -1,4 +1,4 @@
-use crate::{AsDoc, CommentTag, Comments, DisplayPT, Markdown};
+use crate::{AsDoc, CommentTag, Comments, Markdown};
 use itertools::Itertools;
 use once_cell::sync::Lazy;
 use solang_parser::pt::Parameter;
@@ -189,7 +189,7 @@ impl Buffer {
 
             let row = [
                 Markdown::Code(&param_name.unwrap_or_else(|| "<none>".to_owned())).as_doc()?,
-                Markdown::Code(&param.ty.display().to_string()).as_doc()?,
+                Markdown::Code(&param.ty.to_string()).as_doc()?,
                 comment.unwrap_or_default().replace('\n', " "),
             ];
             self.write_piped(&row.join("|"))?;

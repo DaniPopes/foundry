@@ -16,7 +16,7 @@ foundry-config = { path = "../config" }
 foundry-utils = { path = "../utils" }
 
 # ethers
-ethers-core = { git = "https://github.com/gakonst/ethers-rs", default-features = false }
+ethers-core = { workspace = true, default-features = false }
 
 # cli
 clap = { version = "4.1", features = ["derive", "env", "unicode", "wrap_help"] }

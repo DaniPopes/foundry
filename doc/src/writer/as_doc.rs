@@ -89,9 +89,10 @@ impl AsDoc for Document {
                     heading.push_str(ident);
                     if !func.params.is_empty() {
                         heading.push('(');
-                        for (i, (_, param)) in func.params.iter().enumerate() {
-                            let ty = &param.safe_unwrap().ty;
-                            write!(heading, "{ty}").unwrap();
+                        for (i, param) in
+                            func.params.iter().flat_map(|(_, p)| p.as_ref()).enumerate()
+                        {
+                            write!(heading, "{}", param.ty).unwrap();
                             if i < func.params.len() {
                                 heading.push_str(", ");
                             }

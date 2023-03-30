@@ -1161,15 +1161,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 
 [[package]]
-name = "convert_case"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
-dependencies = [
- "unicode-segmentation",
-]
-
-[[package]]
 name = "core-foundation"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1563,7 +1554,7 @@ version = "0.99.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4fb810d30a7c1953f91334de7244731fc3f3c10d7fe163338a35b9f640960321"
 dependencies = [
- "convert_case 0.4.0",
+ "convert_case",
  "proc-macro2",
  "quote",
  "rustc_version",
@@ -1949,6 +1940,7 @@ dependencies = [
 [[package]]
 name = "ethers"
 version = "2.0.1"
+source = "git+https://github.com/gakonst/ethers-rs?rev=80ac394#80ac3947d066bb3e3148edaecf8cd54792452bb2"
 dependencies = [
  "ethers-addressbook",
  "ethers-contract",
@@ -1962,7 +1954,7 @@ dependencies = [
 
 [[package]]
 name = "ethers-addressbook"
-version = "2.0.1"
+version = "2.0.2"
 dependencies = [
  "ethers-core",
  "once_cell",
@@ -1973,6 +1965,7 @@ dependencies = [
 [[package]]
 name = "ethers-contract"
 version = "2.0.1"
+source = "git+https://github.com/gakonst/ethers-rs?rev=80ac394#80ac3947d066bb3e3148edaecf8cd54792452bb2"
 dependencies = [
  "ethers-contract-abigen",
  "ethers-contract-derive",
@@ -1990,6 +1983,7 @@ dependencies = [
 [[package]]
 name = "ethers-contract-abigen"
 version = "2.0.1"
+source = "git+https://github.com/gakonst/ethers-rs?rev=80ac394#80ac3947d066bb3e3148edaecf8cd54792452bb2"
 dependencies = [
  "Inflector",
  "dunce",
@@ -2015,6 +2009,7 @@ dependencies = [
 [[package]]
 name = "ethers-contract-derive"
 version = "2.0.1"
+source = "git+https://github.com/gakonst/ethers-rs?rev=80ac394#80ac3947d066bb3e3148edaecf8cd54792452bb2"
 dependencies = [
  "ethers-contract-abigen",
  "ethers-core",
@@ -2026,13 +2021,12 @@ dependencies = [
 
 [[package]]
 name = "ethers-core"
-version = "2.0.1"
+version = "2.0.2"
 dependencies = [
  "arrayvec",
  "bytes",
  "cargo_metadata",
  "chrono",
- "convert_case 0.6.0",
  "elliptic-curve 0.13.2",
  "ethabi",
  "generic-array",
@@ -2042,13 +2036,12 @@ dependencies = [
  "num_enum",
  "once_cell",
  "open-fastrlp",
- "proc-macro2",
  "rand 0.8.5",
  "rlp",
  "serde",
  "serde_json",
  "strum",
- "syn 1.0.109",
+ "syn 2.0.4",
  "tempfile",
  "thiserror",
  "tiny-keccak",
@@ -2057,7 +2050,7 @@ dependencies = [
 
 [[package]]
 name = "ethers-etherscan"
-version = "2.0.1"
+version = "2.0.2"
 dependencies = [
  "ethers-core",
  "ethers-solc",
@@ -2073,6 +2066,7 @@ dependencies = [
 [[package]]
 name = "ethers-middleware"
 version = "2.0.1"
+source = "git+https://github.com/gakonst/ethers-rs?rev=80ac394#80ac3947d066bb3e3148edaecf8cd54792452bb2"
 dependencies = [
  "async-trait",
  "auto_impl 1.0.1",
@@ -2097,7 +2091,7 @@ dependencies = [
 
 [[package]]
 name = "ethers-providers"
-version = "2.0.1"
+version = "2.0.2"
 dependencies = [
  "async-trait",
  "auto_impl 1.0.1",
@@ -2134,7 +2128,7 @@ dependencies = [
 
 [[package]]
 name = "ethers-signers"
-version = "2.0.1"
+version = "2.0.2"
 dependencies = [
  "async-trait",
  "coins-bip32",
@@ -2160,7 +2154,7 @@ dependencies = [
 
 [[package]]
 name = "ethers-solc"
-version = "2.0.1"
+version = "2.0.2"
 dependencies = [
  "cfg-if",
  "dunce",
@@ -6144,13 +6138,12 @@ dependencies = [
 [[package]]
 name = "solang-parser"
 version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff87dae6cdccacdbf3b19e99b271083556e808de0f59c74a01482f64fdbc61fc"
 dependencies = [
  "itertools",
  "lalrpop",
  "lalrpop-util",
  "phf 0.11.1",
+ "thiserror",
  "unicode-xid",
 ]
 
@@ -7547,3 +7540,15 @@ dependencies = [
  "libc",
  "pkg-config",
 ]
+
+[[patch.unused]]
+name = "ethers"
+version = "2.0.2"
+
+[[patch.unused]]
+name = "ethers-contract"
+version = "2.0.2"
+
+[[patch.unused]]
+name = "ethers-middleware"
+version = "2.0.2"

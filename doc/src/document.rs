@@ -1,4 +1,4 @@
-use crate::{ParseItem, PreprocessorId, PreprocessorOutput, GIT_SOURCE_ID};
+use crate::{ParseItem, PreprocessorId, PreprocessorOutput};
 use askama::Template;
 use std::{borrow::Cow, collections::HashMap, path::PathBuf, sync::Mutex};
 
@@ -52,10 +52,6 @@ impl Document {
         }
     }
 
-    pub(crate) fn git_source(&self) -> Option<String> {
-        read_context!(self, GIT_SOURCE_ID, GitSource)
-    }
-
     /// Set content and identity on the [Document].
     #[must_use]
     pub fn with_content(mut self, content: DocumentContent, identity: String) -> Self {
@@ -75,19 +71,6 @@ impl Document {
         let context = self.context.lock().expect("failed to lock context");
         context.get(&id).cloned()
     }
-}
-
-// #[template(path = "single.md")]
-struct Single {
-    item: ParseItem,
-}
-
-struct Constants {
-    items: Vec<ParseItem>,
-}
-
-struct OverloadedFunctions {
-    items: Vec<ParseItem>,
 }
 
 /// Read the preprocessor output variant from document context.
